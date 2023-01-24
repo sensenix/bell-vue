@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <system.webServer>
+        <cors enabled="true" failUnlistedOrigins="true">
+          <add origin="*">
+            <allowHeaders allowAllRequestedHeaders="true" />
+          </add>
+        </cors>
+        <httpProtocol>
+            <customHeaders>
+                <add name="Access-Control-Allow-Origin" value="http://localhost:8081" />
+                <add name="Access-Control-Allow-Methods" value="GET,POST,PUT,DELETE,OPTIONS" />
+                <add name="Access-Control-Allow-Headers" value="Content-Type" />
+            </customHeaders>
+        </httpProtocol>
+        <rewrite>
+            <rules>
+                <rule name="Forward proxy" enabled="true" stopProcessing="true">
+                    <match url="api(.*)" />
+                    <action type="Rewrite" url="http://localhost:8090/{R:0}" appendQueryString="false" logRewrittenUrl="true" />
+                </rule>
+            </rules>
+        </rewrite>
+    </system.webServer>
+</configuration>
