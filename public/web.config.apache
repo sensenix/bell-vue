@@ -1,8 +1,0 @@
-<VirtualHost *:8080>
-  ServerAdmin admin@bell.com
-  DocumentRoot "/etc/apache2/bell"
-  ErrorLog ${APACHE_LOG_DIR}/error.log
-  CustomLog ${APACHE_LOG_DIR}/access.log combined
-  ProxyPass /server http://localhost:8090
-  ProxyPassReverse / http://localhost:8090
-</VirtualHost>

@@ -8,7 +8,7 @@
         </cors>
         <httpProtocol>
             <customHeaders>
-                <add name="Access-Control-Allow-Origin" value="http://localhost:8081" />
+                <add name="Access-Control-Allow-Origin" value="http://DESKTOP-QMS8319:8081" />
                 <add name="Access-Control-Allow-Methods" value="GET,POST,PUT,DELETE,OPTIONS" />
                 <add name="Access-Control-Allow-Headers" value="Content-Type" />
             </customHeaders>
@@ -19,6 +19,10 @@
                     <match url="api(.*)" />
                     <action type="Rewrite" url="http://localhost:8090/{R:0}" appendQueryString="false" logRewrittenUrl="true" />
                 </rule>
+				<rule name="Fix tree refresh" stopProcessing="true">
+					<match url="^tree.*" ignoreCase="true" />
+					<action type="Redirect" url="/" redirectType="Permanent" appendQueryString="true" />
+				</rule>				
             </rules>
         </rewrite>
     </system.webServer>
