@@ -14,6 +14,8 @@ class DataService {
                     'id': item.id
         }
 
+        // eslint-disable-next-line no-console
+        console.log('post getContent', node);
         return axios.post(API_URL + 'expand', { 'item': node }, { headers: authHeader() });
     }
 
@@ -26,6 +28,8 @@ class DataService {
                     'id': item.id
         }
 
+        // eslint-disable-next-line no-console
+        console.log('post getContent', node);
         return axios.post(API_URL + 'getContent', { 'item': node }, { headers: authHeader() });
     }
 

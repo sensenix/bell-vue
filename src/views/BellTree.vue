@@ -221,7 +221,10 @@ export default {
       await pause(10)
 
       return DataService.expand(item)
-          .then(response => response.data)
+          .then(response => {
+              // eslint-disable-next-line no-console
+              console.log('Expand response', response.data);
+              return response.data })
           .then(json => { item.children.push(...json)
                         })
           .catch(err => { if (err.response.status === 401) {
@@ -233,6 +236,8 @@ export default {
     },
 
     onSelectNode(node) {
+      // eslint-disable-next-line no-console
+      console.log('select node', node)
       this.rightpane_hdr = node[0].name
       this.rightpane_text = ''
       this.rightpane_html = ''
@@ -243,7 +248,10 @@ export default {
 
       if (node[0].nodetype === 'html') {
         DataService.getContent(node[0])
-            .then(response => response.data)
+            .then(response => {
+                // eslint-disable-next-line no-console
+                console.log('Get content response', response.data);
+                return response.data})
             .then(html => { this.working = false
                             this.rightpane_text = ''
                             this.rightpane_html = html })

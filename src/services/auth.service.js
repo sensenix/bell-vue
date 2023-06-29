@@ -9,7 +9,12 @@ class AuthService {
       .post(API_URL + 'signin', {
         name: user.name,
         password: user.password
-      })
+      },{
+      auth: {
+        username: 'root',
+            password: 'root'
+      }
+    })
       .then(response => {
         if (response.data.accessToken) {
           localStorage.setItem('user', JSON.stringify(response.data));
