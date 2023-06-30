@@ -610,12 +610,34 @@ export default {
           // Columns first
           // [ { title: "Date Of Birth", field: "dob", hozAlign: "center" }, ... ]
           let a3 = arrItem.split(delim)
-          a3.forEach(function (item, index) {
+          a3.forEach( (item, index) => {
             if (index >= 0) {
               let field = item.indexOf('__') >= 0 ? item.substring(item.indexOf('__') + 2) : 'col' + index
               let title = item.indexOf('__') >= 0 ? item.substring(0, item.indexOf('__')) : item
               fieldsNames.push(field)
-              let col = { title: title, field: field }
+              let col = { title: title,
+                          field: field,
+                          formatter: function(cell) {
+                            // Colors in data:
+                            // {fore/back}
+                            // {fore}
+                            let value = cell.getValue().trim()
+                            let idx1 = value.indexOf("{")
+                            let idx2 = value.indexOf("}")
+                            if (idx1 == 0 && idx2 >= 0) {
+                              let color = value.substring(idx1 + 1, idx2)
+                              let fore = 'color:' + color + ';';
+                              let back = '';
+                              if (color.indexOf('/') >= 0) {
+                                fore = 'color:' + color.substring(0, color.indexOf('/')) + ';'
+                                back = 'background-color:' + color.substring(color.indexOf('/') + 1) + ';'
+                              }
+                              return "<span style='" + fore + back + "'>" + value.substring(idx2 + 1) + "</span>"
+                            } else {
+                              return value;
+                            }
+                          }
+              }
               let extraPropStr = fieldsProps.hasOwnProperty(field) ? fieldsProps[field] : ''
               if (extraPropStr) {
                 col = { ...col, ...JSON.parse('{' + extraPropStr + '}') }
