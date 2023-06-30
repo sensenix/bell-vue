@@ -16,6 +16,7 @@ import {
   faSignInAlt,
   faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons';
+import 'tabulator-tables/dist/css/tabulator.css';
 
 library.add(faHome, faUser, faUserPlus, faSignInAlt, faSignOutAlt);
 

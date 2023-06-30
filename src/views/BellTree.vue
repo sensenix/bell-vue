@@ -6,6 +6,7 @@
       <v-app id="inspire">
         <splitpanes class="default-theme">
           <pane size="30">
+
             <div style="overflow-y:scroll;overflow-x:hidden;height:100vh;">
 
             <v-treeview ref="maintree"
@@ -50,6 +51,8 @@
 
             <div v-if="rightpane_text"><pre>{{rightpane_text}}</pre></div>
             <div v-if="selected.nodetype === 'html'" v-html="rightpane_html" style="overflow-y:scroll;overflow-x:scroll;height:100vh;"></div>
+
+            <div ref="mainTabulator" v-if="selected.nodetype === 'table'"></div>
 
             <line-chart height="700px" v-if="selected.nodetype === 'chart' && charttype === 'Line' && chartloaded" :chart-data="chartdata" :options="chartoptions"></line-chart>
             <bar-chart height="700px" v-if="selected.nodetype === 'chart' && charttype === 'Bar' && chartloaded" :chart-data="chartdata" :options="chartoptions"></bar-chart>
@@ -109,6 +112,7 @@ import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import { HollowDotsSpinner } from 'epic-spinners'
 import DataService from '../services/data.service'
+import {TabulatorFull as Tabulator} from 'tabulator-tables';
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -128,6 +132,7 @@ export default {
     classes: {
       html: 'mdi-language-html5',
       chart: ' mdi-chart-areaspline',
+      table: ' mdi-table-large',
       text: ' mdi-card-text-outline',
       file: 'mdi-download'
     },
@@ -170,7 +175,11 @@ export default {
     },
 
     chartloaded: false,
-    charttype: 'Line'
+    charttype: 'Line',
+
+    tabulator: null,
+    tableData: [],
+    tableColumns: [],
   }),
 
   computed: {
@@ -250,7 +259,7 @@ export default {
         DataService.getContent(node[0])
             .then(response => {
                 // eslint-disable-next-line no-console
-                console.log('Get content response', response.data);
+                // console.log('Get content response', response.data);
                 return response.data})
             .then(html => { this.working = false
                             this.rightpane_text = ''
@@ -297,6 +306,44 @@ export default {
                               this.rightpane_text = '>' + err.response.data
                             }
                           })
+
+      } else if (node[0].nodetype === 'table') {
+        DataService.getContent(node[0])
+            .then(response => response.data)
+            .then(text => { let retData = this.prepareTableData(text)
+              this.tableData = retData.data
+              this.tableColumns = retData.columns
+              this.working = false
+              this.rightpane_text = ''
+
+              let options = {
+                data: this.tableData,
+                columns: this.tableColumns,
+              }
+
+              if (retData.tableOptions != null) {
+                for (var opt in retData.tableOptions) {
+                  options[opt] = retData.tableOptions[opt]
+                }
+              }
+
+              this.tabulator = new Tabulator(this.$refs.mainTabulator, options);
+
+              // eslint-disable-next-line no-console
+              //console.log('TABULATOR CREATED', options, this.tableColumns, this.tableData)
+            })
+            .catch(err => {
+              // eslint-disable-next-line no-console
+              console.log('ERROR', err)
+
+              this.working = false
+
+              if (err.hasOwnProperty('response') && err.response.status === 401) {
+                this.$router.push('/login');
+              } else {
+                this.rightpane_text = '>' + (err.hasOwnProperty('response') ? err.response.data : err)
+              }
+            })
 
       } else if (node[0].nodetype === 'folder') {
         this.working = false
@@ -501,8 +548,122 @@ export default {
 
     },
 
+    prepareTableData(data) {
+
+      /*
+        # line 1: table properties
+        # line 2: title
+        # line 3: field1>field properties
+        # line 4: field2>field properties
+        # line ..: field3>field properties
+        # line ..: column headers
+        # csv data
+        @'
+        "maxHeight"=300,"movableColumns"=true
+        Sample table title
+        <qry>"formatter":"textarea","width":400,"frozen":true
+        Query|Datetime|Reads|Writes
+        select 1|2021-03-15T22:53:46|0|0
+        select 2|2021-03-15T23:53:46|1|4
+       */
+
+      let tableTitle = ''
+      let dts = []
+      let cols = []
+      let tableOptions = null
+      let fieldsProps = {}
+      let fieldsNames = []
+      let delim = '|'
+      let isData = false
+      let dataRowNum = 0
+
+      let arr = data.split('\n')
+      for (var i = 0; i < arr.length; i++) {
+        let arrItem = arr[i].replace(/\r$/, '')
+        if (i == 0) {
+          // Table options
+          if (arrItem && arrItem !== 'std') {
+            tableOptions = JSON.parse('{' + arrItem + '}')
+          }
+          continue
+        }
+
+        if (i == 1) {
+          // Title
+          tableTitle = arrItem
+          continue
+        }
+
+        // Column properties
+        let idx1 = arrItem.indexOf('<')
+        let idx2 = arrItem.indexOf('>')
+        if (!isData && i >= 2 && idx1 >= 0 && idx2 > 0) {
+          let fld = arrItem.substring(idx1 + 1, idx2).trim()
+
+          if (this.isAlphanumeric(fld)) {
+            fieldsProps[fld] = arrItem.substring(idx2 + 1)
+            continue
+          }
+        }
+
+        if (i >= 2 && !isData) {
+          // Columns first
+          // [ { title: "Date Of Birth", field: "dob", hozAlign: "center" }, ... ]
+          let a3 = arrItem.split(delim)
+          a3.forEach(function (item, index) {
+            if (index >= 0) {
+              let field = item.indexOf('__') >= 0 ? item.substring(item.indexOf('__') + 2) : 'col' + index
+              let title = item.indexOf('__') >= 0 ? item.substring(0, item.indexOf('__')) : item
+              fieldsNames.push(field)
+              let col = { title: title, field: field }
+              let extraPropStr = fieldsProps.hasOwnProperty(field) ? fieldsProps[field] : ''
+              if (extraPropStr) {
+                col = { ...col, ...JSON.parse('{' + extraPropStr + '}') }
+              }
+              cols.push(col)
+            }
+          });
+          isData = true
+          continue
+        }
+
+        if (isData) {
+          // Data
+          // [ {id:4, name:"Brendon Philips", age:"125", col:"orange", dob:"01/08/1980"}, ... ]
+          let a4 = arrItem.split(delim)
+          let row = {}
+          a4.forEach( (item, index) => {
+            if (dataRowNum == 0 && this.isNumeric(item)) {
+              // Automatically align numeric to right
+              if (!cols[index].hasOwnProperty("hozAlign")) {
+                cols[index]["hozAlign"] = "right"
+              }
+            }
+            row[fieldsNames[index]] = item.replaceAll('~N~', '\r\n')
+          });
+          dts.push(row)
+          dataRowNum++
+        }
+      }
+      // eslint-disable-next-line no-console
+      //console.log('Table data', cols, dts)
+      return {tableTitle: tableTitle, tableOptions: tableOptions, columns: cols, data: dts}
+    },
+
     reserved () {
-    }
+    },
+
+    isAlphanumeric(str) {
+      return /^[a-zA-Z0-9_]+$/.test(str);
+    },
+
+    isNumeric(str) {
+      let occurDots = (str.match(/[.,]/g)||[]).length
+      if (occurDots > 1) {
+        return false
+      }
+      return /^[0-9,.]+$/.test(str);
+    },
 
   },
 
