@@ -50,7 +50,7 @@
             />
 
             <div v-if="rightpane_text"><pre>{{rightpane_text}}</pre></div>
-            <div v-if="selected.nodetype === 'html'" v-html="rightpane_html" style="overflow-y:scroll;overflow-x:scroll;height:100vh;"></div>
+            <div v-if="selected.nodetype === 'html'" v-html="rightpane_html" style="background-color:#F2F4F4;overflow-y:scroll;overflow-x:scroll;height:100vh;"></div>
 
             <div ref="mainTabulator" v-if="selected.nodetype === 'table'"></div>
 
@@ -580,10 +580,17 @@ export default {
       let arr = data.split('\n')
       for (var i = 0; i < arr.length; i++) {
         let arrItem = arr[i].replace(/\r$/, '')
+
+        // eslint-disable-next-line no-console
+        //console.log('ResultSet>', i, arrItem)
+
         if (i == 0) {
           // Table options
           if (arrItem && arrItem !== 'std') {
-            tableOptions = JSON.parse('{' + arrItem + '}')
+            let options = '{' + arrItem + '}'
+            // eslint-disable-next-line no-console
+            //console.log('Table options', options)
+            tableOptions = JSON.parse(options)
           }
           continue
         }
